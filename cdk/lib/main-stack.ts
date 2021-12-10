@@ -30,28 +30,28 @@ export class CdkStack extends cdk.Stack {
       logging: new ecs.AwsLogDriver({ streamPrefix: get.appName }),
     });
 
-    // const service = new ecs.Ec2Service(this, 'Service', {
-    //   cluster: get.cluster,
-    //   taskDefinition,
-    //   healthCheckGracePeriod:Duration.minutes(3),
-    // });
-    // get.clusterSecurityGroup.connections.allowFrom(get.albSecurityGroup, ec2.Port.tcp(get.hostPort), `Allow traffic from ELB for ${get.appName}`);
+    const service = new ecs.Ec2Service(this, 'Service', {
+      cluster: get.cluster,
+      taskDefinition,
+      healthCheckGracePeriod: Duration.minutes(3),
+    });
+    get.clusterSecurityGroup.connections.allowFrom(get.albSecurityGroup, ec2.Port.tcp(get.hostPort), `Allow traffic from ELB for ${get.appName}`);
 
-    // const albTargetGroup = new elb.ApplicationTargetGroup(this, 'TargetGroup', {
-    //   port: 80,
-    //   protocol: elb.ApplicationProtocol.HTTP,
-    //   healthCheck: { enabled: true },
-    //   vpc: get.vpc,
-    //   targetType: elb.TargetType.INSTANCE,
-    //   targets: [service],
-    // });
+    const albTargetGroup = new elb.ApplicationTargetGroup(this, 'TargetGroup', {
+      port: 80,
+      protocol: elb.ApplicationProtocol.HTTP,
+      healthCheck: { enabled: true, healthyHttpCodes: '200,302' },
+      vpc: get.vpc,
+      targetType: elb.TargetType.INSTANCE,
+      targets: [service],
+    });
 
-    // new elb.ApplicationListenerRule(this, "ListenerRule", {
-    //   listener: get.albListener,
-    //   priority: get.priority,
-    //   targetGroups: [albTargetGroup],
-    //   conditions: [elb.ListenerCondition.hostHeaders([get.dnsName])],
-    // });
+    new elb.ApplicationListenerRule(this, "ListenerRule", {
+      listener: get.albListener,
+      priority: get.priority,
+      targetGroups: [albTargetGroup],
+      conditions: [elb.ListenerCondition.hostHeaders([get.dnsName])],
+    });
 
     const certificate = new acm.Certificate(this, 'SSL', {
       domainName: get.dnsName,
