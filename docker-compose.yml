@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  piwigo-photos:
+    image: deweiliu/piwigo-photos:latest
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: piwigo-container
+    ports:
+      - 80:80
