@@ -7,28 +7,27 @@ Description: >-
   resources used if you create a stack from this template.
 Parameters:
   DBUsername:
-    NoEcho: 'true'
+    NoEcho: "true"
     Description: Username for PostgreSQL database access
     Type: String
-    MinLength: '1'
-    MaxLength: '16'
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    MinLength: "1"
+    MaxLength: "16"
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
     ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
   DBPassword:
-    NoEcho: 'true'
+    NoEcho: "true"
     Description: Password for PostgreSQL database access
     Type: String
-    MinLength: '8'
-    MaxLength: '41'
+    MinLength: "8"
+    MaxLength: "41"
     ConstraintDescription: must contain only alphanumeric characters.
 Resources:
+  # TODO add security group
   RDSCluster:
     Type: AWS::RDS::DBCluster
     Properties:
-      MasterUsername: 
-        Ref: DBUsername
-      MasterUserPassword: 
-        Ref: DBPassword
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
       DatabaseName: piwigo
       Engine: aurora
       EngineMode: serverless
@@ -37,14 +36,15 @@ Resources:
         AutoPause: true
         MaxCapacity: 2
         MinCapacity: 1
-        SecondsUntilAutoPause: 1800
+        SecondsUntilAutoPause: 300
       DBSubnetGroupName: !Ref DBSubnetGroup
+    DeletionPolicy: Delete
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
-    Properties: 
+    Properties:
       DBSubnetGroupDescription: Piwigo DB Subnet Group
       DBSubnetGroupName: piwigo-db-subnet-group
-      SubnetIds: 
+      SubnetIds:
         - !Ref DBSubnet1
         - !Ref DBSubnet2
 
@@ -69,3 +69,20 @@ Resources:
         - 1
         - !GetAZs
           Ref: "AWS::Region"
+
+  FileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      Encrypted: true
+      BackupPolicy:
+        Status: ENABLED
+
+Outputs:
+  FileSystemID:
+    Value: !Ref FileSystem
+    Export:
+      Name: Piwigo-EfsId
+  FileSystemArn:
+    Value: !GetAtt FileSystem.Arn
+    Export:
+      Name: Piwigo-EfsArn
