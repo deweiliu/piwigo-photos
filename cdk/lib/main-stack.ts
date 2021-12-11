@@ -1,11 +1,14 @@
 import * as cdk from '@aws-cdk/core';
 import * as route53 from '@aws-cdk/aws-route53';
 import * as ec2 from '@aws-cdk/aws-ec2';
+import * as iam from '@aws-cdk/aws-iam';
 import * as ecs from '@aws-cdk/aws-ecs';
 import * as elb from '@aws-cdk/aws-elasticloadbalancingv2';
 import { ImportValues } from './import-values';
 import * as acm from '@aws-cdk/aws-certificatemanager';
 import { Duration } from '@aws-cdk/core';
+import { AccessPoint, CfnMountTarget, FileSystem } from '@aws-cdk/aws-efs';
+import { ISubnet, PublicSubnet } from '@aws-cdk/aws-ec2';
 
 export interface CdkStackProps extends cdk.StackProps {
   maxAzs: number;
@@ -20,22 +23,103 @@ export class CdkStack extends cdk.Stack {
 
     const get = new ImportValues(this, props);
 
-    const taskDefinition = new ecs.Ec2TaskDefinition(this, 'TaskDefinition', { networkMode: ecs.NetworkMode.BRIDGE });
+    // EFS configuration
+    const fsSecurityGroup = new ec2.SecurityGroup(this, 'FsSecurityGroup', { vpc: get.vpc });
+    fsSecurityGroup.connections.allowFrom(get.clusterSecurityGroup, ec2.Port.tcp(2049), `Allow traffic from ${get.appName} to the File System`);
 
-    taskDefinition.addContainer('Container', {
+    const subnets: ISubnet[] = [];
+    [...Array(props.maxAzs).keys()].forEach(azIndex => {
+      const subnet = new PublicSubnet(this, `Subnet` + azIndex, {
+        vpcId: get.vpc.vpcId,
+        availabilityZone: cdk.Stack.of(this).availabilityZones[azIndex],
+        cidrBlock: `10.0.8.${(azIndex + 2) * 16}/28`,
+        mapPublicIpOnLaunch: true,
+      });
+      new ec2.CfnRoute(this, 'PublicRouting' + azIndex, {
+        destinationCidrBlock: '0.0.0.0/0',
+        routeTableId: subnet.routeTable.routeTableId,
+        gatewayId: get.igwId,
+      });
+      subnets.push(subnet);
+
+      new CfnMountTarget(this, 'MountTarget' + azIndex, {
+        fileSystemId: get.fsId,
+        securityGroups: [fsSecurityGroup.securityGroupId],
+        subnetId: subnet.subnetId
+      });
+    });
+
+    const fileSystem = FileSystem.fromFileSystemAttributes(this, 'FileSystem', {
+      securityGroup: fsSecurityGroup,
+      fileSystemId: get.fsId,
+    });
+
+    const configAccessPoint1 = new AccessPoint(this, 'ConfigAccessPoint', {
+      fileSystem,
+      createAcl: { ownerGid: '0', ownerUid: '0', permissions: "755" },
+      path: '/config',
+      posixUser: { uid: '0', gid: '0' },
+    });
+    const galleryAccessPoint1 = new AccessPoint(this, 'GalleryAccessPoint', {
+      fileSystem,
+      createAcl: { ownerGid: '0', ownerUid: '0', permissions: "755" },
+      path: '/gallery',
+      posixUser: { uid: '0', gid: '0' },
+    });
+
+    // ECS resources
+    const taskDefinition = new ecs.Ec2TaskDefinition(this, 'TaskDefinition', {
+      executionRole: new iam.Role(this, 'ExecutionRole', {
+        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+        managedPolicies: [iam.ManagedPolicy.fromManagedPolicyArn(
+          this, 'ExecutionRolePolicy', 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy')],
+      }),
+
+      networkMode: ecs.NetworkMode.BRIDGE,
+      volumes: [{
+        name: 'config-volume', efsVolumeConfiguration: {
+          fileSystemId: get.fsId,
+          transitEncryption: 'ENABLED',
+          authorizationConfig: { accessPointId: configAccessPoint1.accessPointId, iam: 'ENABLED' },
+        }
+      }, {
+        name: 'gallery-volume', efsVolumeConfiguration: {
+          fileSystemId: get.fsId,
+          transitEncryption: 'ENABLED',
+          authorizationConfig: { accessPointId: galleryAccessPoint1.accessPointId, iam: 'ENABLED' },
+        }
+      }],
+    });
+
+    taskDefinition.addToTaskRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['*'],
+      resources: ['*'],
+    }));
+
+    const container = taskDefinition.addContainer('Container', {
       image: ecs.ContainerImage.fromRegistry(get.dockerImage),
       containerName: `${get.appName}-container`,
-      memoryReservationMiB: 512,
+      memoryReservationMiB: 256,
       portMappings: [{ containerPort: 80, hostPort: get.hostPort, protocol: ecs.Protocol.TCP }],
       logging: new ecs.AwsLogDriver({ streamPrefix: get.appName }),
     });
+    container.addMountPoints(
+      { containerPath: '/config', readOnly: false, sourceVolume: 'config-volume' },
+      { containerPath: '/gallery', readOnly: false, sourceVolume: 'gallery-volume' },
+    );
+
 
     const service = new ecs.Ec2Service(this, 'Service', {
       cluster: get.cluster,
       taskDefinition,
       healthCheckGracePeriod: Duration.minutes(3),
+      desiredCount: 1,
     });
     get.clusterSecurityGroup.connections.allowFrom(get.albSecurityGroup, ec2.Port.tcp(get.hostPort), `Allow traffic from ELB for ${get.appName}`);
+    get.clusterSecurityGroup.connections.allowFromAnyIpv4(ec2.Port.allTcp());
+    get.albSecurityGroup.connections.allowFromAnyIpv4(ec2.Port.allTcp());
+    fsSecurityGroup.connections.allowFromAnyIpv4(ec2.Port.allTcp());
 
     const albTargetGroup = new elb.ApplicationTargetGroup(this, 'TargetGroup', {
       port: 80,
@@ -65,6 +149,8 @@ export class CdkStack extends cdk.Stack {
       recordName: get.dnsRecord,
       ttl: Duration.hours(1),
     });
+
+
 
     new cdk.CfnOutput(this, 'DnsName', { value: record.domainName });
   }

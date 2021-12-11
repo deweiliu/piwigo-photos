@@ -22,7 +22,6 @@ Parameters:
     MaxLength: "41"
     ConstraintDescription: must contain only alphanumeric characters.
 Resources:
-  # TODO add security group
   RDSCluster:
     Type: AWS::RDS::DBCluster
     Properties:
@@ -81,8 +80,4 @@ Outputs:
   FileSystemID:
     Value: !Ref FileSystem
     Export:
-      Name: Piwigo-EfsId
-  FileSystemArn:
-    Value: !GetAtt FileSystem.Arn
-    Export:
-      Name: Piwigo-EfsArn
+      Name: Piwigo-EfsId3
