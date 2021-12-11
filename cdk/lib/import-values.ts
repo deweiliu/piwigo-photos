@@ -30,6 +30,7 @@ export class ImportValues extends cdk.Construct implements CdkStackProps {
     public dnsName: string;
     public hostPort: number;
     public fsId: string;
+    public fsArn: string;
 
     constructor(scope: cdk.Construct, props: CdkStackProps) {
         super(scope, 'ImportValues')
@@ -81,6 +82,7 @@ export class ImportValues extends cdk.Construct implements CdkStackProps {
         });
 
         this.fsId = Fn.importValue('Piwigo-EfsId');
+        this.fsArn = Fn.importValue('Piwigo-EfsArn');
     }
 
 

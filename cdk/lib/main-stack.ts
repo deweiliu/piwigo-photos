@@ -32,7 +32,7 @@ export class CdkStack extends cdk.Stack {
       const subnet = new PublicSubnet(this, `Subnet` + azIndex, {
         vpcId: get.vpc.vpcId,
         availabilityZone: cdk.Stack.of(this).availabilityZones[azIndex],
-        cidrBlock: `10.0.8.${(azIndex + 2) * 16}/28`,
+        cidrBlock: `10.0.${get.appId}.${(azIndex + 2) * 16}/28`,
         mapPublicIpOnLaunch: true,
       });
       new ec2.CfnRoute(this, 'PublicRouting' + azIndex, {
@@ -69,12 +69,6 @@ export class CdkStack extends cdk.Stack {
 
     // ECS resources
     const taskDefinition = new ecs.Ec2TaskDefinition(this, 'TaskDefinition', {
-      executionRole: new iam.Role(this, 'ExecutionRole', {
-        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-        managedPolicies: [iam.ManagedPolicy.fromManagedPolicyArn(
-          this, 'ExecutionRolePolicy', 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy')],
-      }),
-
       networkMode: ecs.NetworkMode.BRIDGE,
       volumes: [{
         name: 'config-volume', efsVolumeConfiguration: {
@@ -93,8 +87,8 @@ export class CdkStack extends cdk.Stack {
 
     taskDefinition.addToTaskRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: ['*'],
-      resources: ['*'],
+      actions: ['elasticfilesystem:ClientMount', 'elasticfilesystem:ClientWrite'],
+      resources: [get.fsArn],
     }));
 
     const container = taskDefinition.addContainer('Container', {
@@ -117,9 +111,6 @@ export class CdkStack extends cdk.Stack {
       desiredCount: 1,
     });
     get.clusterSecurityGroup.connections.allowFrom(get.albSecurityGroup, ec2.Port.tcp(get.hostPort), `Allow traffic from ELB for ${get.appName}`);
-    get.clusterSecurityGroup.connections.allowFromAnyIpv4(ec2.Port.allTcp());
-    get.albSecurityGroup.connections.allowFromAnyIpv4(ec2.Port.allTcp());
-    fsSecurityGroup.connections.allowFromAnyIpv4(ec2.Port.allTcp());
 
     const albTargetGroup = new elb.ApplicationTargetGroup(this, 'TargetGroup', {
       port: 80,
@@ -149,8 +140,6 @@ export class CdkStack extends cdk.Stack {
       recordName: get.dnsRecord,
       ttl: Duration.hours(1),
     });
-
-
 
     new cdk.CfnOutput(this, 'DnsName', { value: record.domainName });
   }
