@@ -112,7 +112,7 @@ export class CdkStack extends cdk.Stack {
     const service = new ecs.Ec2Service(this, 'Service', {
       cluster: get.cluster,
       taskDefinition,
-      healthCheckGracePeriod: Duration.minutes(3),
+      healthCheckGracePeriod: Duration.minutes(1),
       desiredCount: 1,
     });
     get.clusterSecurityGroup.connections.allowFrom(get.albSecurityGroup, ec2.Port.tcp(get.hostPort), `Allow traffic from ELB for ${get.appName}`);
