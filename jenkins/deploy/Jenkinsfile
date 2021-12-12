@@ -15,9 +15,19 @@ pipeline {
             }
         }
         
-        stage('CDK Deploy'){
+        stage('CDK Synth'){
             steps{
                 dir('cdk'){
+                    sh '''
+                    npm install;
+                    npm run synth;
+                    '''
+                }
+            }
+        }        
+        stage('CDK Deploy'){
+            steps{
+                dir('cdk-corrected'){
                     sh '''
                     npm install;
                     npm run deploy;
