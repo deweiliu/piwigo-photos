@@ -127,7 +127,7 @@ export class CdkStack extends cdk.Stack {
         enabled: true,
         healthyHttpCodes: '200,302',
         unhealthyThresholdCount: 5,
-        healthyThresholdCount: 1,
+        healthyThresholdCount: 2,
         interval: Duration.minutes(1),
       },
     });
