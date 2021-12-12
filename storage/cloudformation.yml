@@ -16,6 +16,15 @@ Parameters:
     MaxLength: "41"
     ConstraintDescription: must contain only alphanumeric characters.
 Resources:
+  # EFS
+  FileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      Encrypted: true
+      BackupPolicy:
+        Status: ENABLED
+
+  # RDS
   RDSCluster:
     Type: AWS::RDS::DBCluster
     Properties:
@@ -31,6 +40,15 @@ Resources:
         MinCapacity: 1
         SecondsUntilAutoPause: 300
       DBSubnetGroupName: !Ref DBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref DBSecurityGroup
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Piwigo Photos Database Security Group
+      VpcId: !ImportValue Core-Vpc
+
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -49,7 +67,6 @@ Resources:
         - 0
         - !GetAZs
           Ref: "AWS::Region"
-
   DBSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -61,13 +78,6 @@ Resources:
         - !GetAZs
           Ref: "AWS::Region"
 
-  FileSystem:
-    Type: AWS::EFS::FileSystem
-    Properties:
-      Encrypted: true
-      BackupPolicy:
-        Status: ENABLED
-
 Outputs:
   FileSystemID:
     Value: !Ref FileSystem
@@ -77,3 +87,7 @@ Outputs:
     Value: !GetAtt FileSystem.Arn
     Export:
       Name: Piwigo-EfsArn
+  DBSecurityGroup:
+    Value: !GetAtt DBSecurityGroup.GroupId
+    Export:
+      Name: Piwigo-DbSecurityGroup

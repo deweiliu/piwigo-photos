@@ -23,6 +23,10 @@ export class CdkStack extends cdk.Stack {
 
     const get = new ImportValues(this, props);
 
+    // RDS configuration
+    const dbSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, 'DBSecurityGroup', get.dbSecurityGroup);
+    dbSecurityGroup.connections.allowFrom(get.clusterSecurityGroup, ec2.Port.tcp(3306), `Allow traffic from ${get.appName} to the RDS`);
+
     // EFS configuration
     const fsSecurityGroup = new ec2.SecurityGroup(this, 'FsSecurityGroup', { vpc: get.vpc });
     fsSecurityGroup.connections.allowFrom(get.clusterSecurityGroup, ec2.Port.tcp(2049), `Allow traffic from ${get.appName} to the File System`);
@@ -54,17 +58,18 @@ export class CdkStack extends cdk.Stack {
       fileSystemId: get.fsId,
     });
 
+    const posixId = '0';
     const configAccessPoint1 = new AccessPoint(this, 'ConfigAccessPoint', {
       fileSystem,
-      createAcl: { ownerGid: '0', ownerUid: '0', permissions: "755" },
+      createAcl: { ownerGid: posixId, ownerUid: posixId, permissions: "755" },
       path: '/config',
-      posixUser: { uid: '0', gid: '0' },
+      posixUser: { uid: posixId, gid: posixId },
     });
     const galleryAccessPoint1 = new AccessPoint(this, 'GalleryAccessPoint', {
       fileSystem,
-      createAcl: { ownerGid: '0', ownerUid: '0', permissions: "755" },
+      createAcl: { ownerGid: posixId, ownerUid: posixId, permissions: "755" },
       path: '/gallery',
-      posixUser: { uid: '0', gid: '0' },
+      posixUser: { uid: posixId, gid: posixId },
     });
 
     // ECS resources
