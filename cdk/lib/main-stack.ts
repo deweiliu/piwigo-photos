@@ -120,10 +120,15 @@ export class CdkStack extends cdk.Stack {
     const albTargetGroup = new elb.ApplicationTargetGroup(this, 'TargetGroup', {
       port: 80,
       protocol: elb.ApplicationProtocol.HTTP,
-      healthCheck: { enabled: true, healthyHttpCodes: '200,302' },
       vpc: get.vpc,
       targetType: elb.TargetType.INSTANCE,
       targets: [service],
+      healthCheck: {
+        enabled: true,
+        healthyHttpCodes: '200,302',
+        unhealthyThresholdCount: 5,
+        interval: Duration.minutes(1),
+      },
     });
 
     new elb.ApplicationListenerRule(this, "ListenerRule", {
