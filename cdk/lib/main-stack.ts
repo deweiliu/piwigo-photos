@@ -108,38 +108,37 @@ export class CdkStack extends cdk.Stack {
       { containerPath: '/gallery', readOnly: false, sourceVolume: 'gallery-volume' },
     );
 
-
     const service = new ecs.Ec2Service(this, 'Service', {
       cluster: get.cluster,
       taskDefinition,
-      // healthCheckGracePeriod: Duration.minutes(1),
       desiredCount: 1,
     });
 
-    // // Load balancer configuration
-    // get.clusterSecurityGroup.connections.allowFrom(get.albSecurityGroup, ec2.Port.tcp(get.hostPort), `Allow traffic from ELB for ${get.appName}`);
+    // Load balancer configuration
+    get.clusterSecurityGroup.connections.allowFrom(get.albSecurityGroup, ec2.Port.tcp(get.hostPort), `Allow traffic from ELB for ${get.appName}`);
 
-    // const albTargetGroup = new elb.ApplicationTargetGroup(this, 'TargetGroup', {
-    //   port: 80,
-    //   protocol: elb.ApplicationProtocol.HTTP,
-    //   vpc: get.vpc,
-    //   targetType: elb.TargetType.INSTANCE,
-    //   targets: [service],
-    //   healthCheck: {
-    //     enabled: true,
-    //     healthyHttpCodes: '200,302',
-    //     unhealthyThresholdCount: 5,
-    //     healthyThresholdCount: 2,
-    //     interval: Duration.minutes(1),
-    //   },
-    // });
+    const albTargetGroup = new elb.ApplicationTargetGroup(this, 'TargetGroup', {
+      port: 80,
+      protocol: elb.ApplicationProtocol.HTTP,
+      vpc: get.vpc,
+      targetType: elb.TargetType.INSTANCE,
+      targets: [service],
+      healthCheck: {
+        enabled: true,
+        interval: Duration.minutes(1),
+        path: '/install.php',
+        healthyHttpCodes: '200',
+        healthyThresholdCount: 2,
+        unhealthyThresholdCount: 5,
+      },
+    });
 
-    // new elb.ApplicationListenerRule(this, "ListenerRule", {
-    //   listener: get.albListener,
-    //   priority: get.priority,
-    //   targetGroups: [albTargetGroup],
-    //   conditions: [elb.ListenerCondition.hostHeaders([get.dnsName])],
-    // });
+    new elb.ApplicationListenerRule(this, "ListenerRule", {
+      listener: get.albListener,
+      priority: get.priority,
+      targetGroups: [albTargetGroup],
+      conditions: [elb.ListenerCondition.hostHeaders([get.dnsName])],
+    });
 
     const certificate = new acm.Certificate(this, 'SSL', {
       domainName: get.dnsName,
