@@ -7,7 +7,7 @@ const fs = require("fs");
 
 export class CdkStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string) {
-    super(scope, id);
+    super(scope, id, { tags: { service: 'piwigo-photos' } });
 
     const volumes: any[] = template.Resources.TaskDefinitionB36D86D9.Properties.Volumes;
     volumes.forEach(volume => {
