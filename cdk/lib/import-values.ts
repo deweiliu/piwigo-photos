@@ -32,6 +32,7 @@ export class ImportValues extends cdk.Construct implements CdkStackProps {
     public fsId: string;
     public fsArn: string;
     public dbSecurityGroup: string;
+    public capacityProviderT2: string;
 
     constructor(scope: cdk.Construct, props: CdkStackProps) {
         super(scope, 'ImportValues')
@@ -81,6 +82,8 @@ export class ImportValues extends cdk.Construct implements CdkStackProps {
             securityGroups: [this.clusterSecurityGroup],
             vpc: this.vpc,
         });
+
+        this.capacityProviderT2 = Fn.importValue('Core-ClusterCapacityProviderT2');
 
         this.fsId = Fn.importValue('Piwigo-EfsId');
         this.fsArn = Fn.importValue('Piwigo-EfsArn');

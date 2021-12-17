@@ -112,6 +112,7 @@ export class CdkStack extends cdk.Stack {
       cluster: get.cluster,
       taskDefinition,
       desiredCount: 1,
+      capacityProviderStrategies: [{ capacityProvider: get.capacityProviderT2 }],
     });
 
     // Load balancer configuration
