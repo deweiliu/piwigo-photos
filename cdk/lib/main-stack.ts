@@ -126,7 +126,7 @@ export class CdkStack extends cdk.Stack {
       healthCheck: {
         enabled: true,
         interval: Duration.minutes(1),
-        path: '/install.php', 
+        path: '/install.php',
         healthyHttpCodes: '200',
         healthyThresholdCount: 2,
         unhealthyThresholdCount: 5,
