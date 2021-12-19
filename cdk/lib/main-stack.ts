@@ -99,7 +99,7 @@ export class CdkStack extends cdk.Stack {
     const container = taskDefinition.addContainer('Container', {
       image: ecs.ContainerImage.fromRegistry(get.dockerImage),
       containerName: `${get.appName}-container`,
-      memoryReservationMiB: 256,
+      memoryReservationMiB: 32,
       portMappings: [{ containerPort: 80, hostPort: get.hostPort, protocol: ecs.Protocol.TCP }],
       logging: new ecs.AwsLogDriver({ streamPrefix: get.appName }),
     });
