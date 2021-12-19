@@ -99,7 +99,7 @@ export class CdkStack extends cdk.Stack {
     const container = taskDefinition.addContainer('Container', {
       image: ecs.ContainerImage.fromRegistry(get.dockerImage),
       containerName: `${get.appName}-container`,
-      memoryReservationMiB: 32,
+      memoryReservationMiB: 64,
       portMappings: [{ containerPort: 80, hostPort: get.hostPort, protocol: ecs.Protocol.TCP }],
       logging: new ecs.AwsLogDriver({ streamPrefix: get.appName }),
     });
@@ -111,7 +111,7 @@ export class CdkStack extends cdk.Stack {
     const service = new ecs.Ec2Service(this, 'Service', {
       cluster: get.cluster,
       taskDefinition,
-      desiredCount: 1,
+      desiredCount: 2,
     });
 
     // Load balancer configuration
@@ -126,7 +126,7 @@ export class CdkStack extends cdk.Stack {
       healthCheck: {
         enabled: true,
         interval: Duration.minutes(1),
-        path: '/install.php',
+        path: '/',
         healthyHttpCodes: '200',
         healthyThresholdCount: 2,
         unhealthyThresholdCount: 5,
