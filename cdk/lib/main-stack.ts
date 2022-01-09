@@ -108,10 +108,12 @@ export class CdkStack extends cdk.Stack {
       { containerPath: '/gallery', readOnly: false, sourceVolume: 'gallery-volume' },
     );
 
+    const desiredCount = 1;
     const service = new ecs.Ec2Service(this, 'Service', {
       cluster: get.cluster,
       taskDefinition,
-      desiredCount: 2,
+      desiredCount,
+      minHealthyPercent: desiredCount === 1 ? 0 : 50,
     });
 
     // Load balancer configuration

@@ -23,6 +23,9 @@ Resources:
       Encrypted: true
       BackupPolicy:
         Status: ENABLED
+      FileSystemTags:
+        - Key: Name
+          Value: piwigo-photos
 
   # RDS
   RDSCluster:
