@@ -10,6 +10,7 @@ new CdkStack(app, 'PiwigoPhotos', {
   domain: 'dliu.com',
   dnsRecord: 'photos',
   appName: 'piwigo-photos',
+  instanceCount: 2,
   tags: { service: 'piwigo-photos' },
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,

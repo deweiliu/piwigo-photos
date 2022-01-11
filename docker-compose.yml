@@ -6,6 +6,10 @@ services:
     build:
       context: ./src
       dockerfile: Dockerfile
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
     container_name: piwigo-container
     ports:
       - 80:80
