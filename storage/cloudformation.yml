@@ -45,6 +45,7 @@ Resources:
       DBSubnetGroupName: !Ref DBSubnetGroup
       VpcSecurityGroupIds:
         - !Ref DBSecurityGroup
+      DeletionProtection: true
 
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
