@@ -32,20 +32,19 @@ export class CdkStack extends cdk.Stack {
     const fsSecurityGroup = new ec2.SecurityGroup(this, 'FsSecurityGroup', { vpc: get.vpc });
     fsSecurityGroup.connections.allowFrom(get.clusterSecurityGroup, ec2.Port.tcp(2049), `Allow traffic from ${get.appName} to the File System`);
 
-    const subnets: ISubnet[] = [];
+    // const subnets: ISubnet[] = [];
     [...Array(props.maxAzs).keys()].forEach(azIndex => {
-      const subnet = new PublicSubnet(this, `Subnet` + azIndex, {
+      const subnet = new ec2.PrivateSubnet(this, `Subnet` + azIndex, {
         vpcId: get.vpc.vpcId,
         availabilityZone: cdk.Stack.of(this).availabilityZones[azIndex],
         cidrBlock: `10.0.${get.appId}.${(azIndex + 2) * 16}/28`,
-        mapPublicIpOnLaunch: true,
       });
-      new ec2.CfnRoute(this, 'PublicRouting' + azIndex, {
-        destinationCidrBlock: '0.0.0.0/0',
-        routeTableId: subnet.routeTable.routeTableId,
-        gatewayId: get.igwId,
-      });
-      subnets.push(subnet);
+      // new ec2.CfnRoute(this, 'PublicRouting' + azIndex, {
+      //   destinationCidrBlock: '0.0.0.0/0',
+      //   routeTableId: subnet.routeTable.routeTableId,
+      //   gatewayId: get.igwId,
+      // });
+      // subnets.push(subnet);
 
       new CfnMountTarget(this, 'MountTarget' + azIndex, {
         fileSystemId: get.fsId,
