@@ -67,20 +67,15 @@ Resources:
       VpcId: !ImportValue Core-Vpc
       CidrBlock: 10.0.8.0/28
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select
-        - 0
-        - !GetAZs
-          Ref: "AWS::Region"
+      AvailabilityZone: !Select [0, !GetAZs { Ref: "AWS::Region" }]
+
   DBSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !ImportValue Core-Vpc
       CidrBlock: 10.0.8.16/28
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select
-        - 1
-        - !GetAZs
-          Ref: "AWS::Region"
+      AvailabilityZone: !Select [1, !GetAZs { Ref: "AWS::Region" }]
 
 Outputs:
   FileSystemID:
