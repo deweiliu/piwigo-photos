@@ -1,16 +1,21 @@
-import * as cdk from '@aws-cdk/core';
-import * as route53 from '@aws-cdk/aws-route53';
-import * as ec2 from '@aws-cdk/aws-ec2';
-import * as iam from '@aws-cdk/aws-iam';
-import * as ecs from '@aws-cdk/aws-ecs';
-import * as elb from '@aws-cdk/aws-elasticloadbalancingv2';
-import { ImportValues } from './import-values';
-import * as acm from '@aws-cdk/aws-certificatemanager';
-import { Duration } from '@aws-cdk/core';
-import { AccessPoint, CfnMountTarget, FileSystem } from '@aws-cdk/aws-efs';
-import { ISubnet, PublicSubnet } from '@aws-cdk/aws-ec2';
+import { Construct } from 'constructs';
+import {
+  aws_route53 as route53,
+  aws_ec2 as ec2,
+  aws_iam as iam,
+  aws_ecs as ecs,
+  aws_elasticloadbalancingv2 as elb,
+  aws_certificatemanager as acm,
+  aws_efs as efs,
+  StackProps,
+  Stack,
+  CfnOutput,
+  Duration,
+} from 'aws-cdk-lib';
 
-export interface CdkStackProps extends cdk.StackProps {
+import { ImportValues } from './import-values';
+
+export interface CdkStackProps extends StackProps {
   maxAzs: number;
   appId: number;
   domain: string;
@@ -18,8 +23,8 @@ export interface CdkStackProps extends cdk.StackProps {
   appName: string;
   instanceCount: number;
 }
-export class CdkStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props: CdkStackProps) {
+export class CdkStack extends Stack {
+  constructor(scope: Construct, id: string, props: CdkStackProps) {
     super(scope, id, props);
 
     const get = new ImportValues(this, props);
@@ -32,40 +37,33 @@ export class CdkStack extends cdk.Stack {
     const fsSecurityGroup = new ec2.SecurityGroup(this, 'FsSecurityGroup', { vpc: get.vpc });
     fsSecurityGroup.connections.allowFrom(get.clusterSecurityGroup, ec2.Port.tcp(2049), `Allow traffic from ${get.appName} to the File System`);
 
-    // const subnets: ISubnet[] = [];
     [...Array(props.maxAzs).keys()].forEach(azIndex => {
       const subnet = new ec2.PrivateSubnet(this, `Subnet` + azIndex, {
         vpcId: get.vpc.vpcId,
-        availabilityZone: cdk.Stack.of(this).availabilityZones[azIndex],
+        availabilityZone: Stack.of(this).availabilityZones[azIndex],
         cidrBlock: `10.0.${get.appId}.${(azIndex + 2) * 16}/28`,
       });
-      // new ec2.CfnRoute(this, 'PublicRouting' + azIndex, {
-      //   destinationCidrBlock: '0.0.0.0/0',
-      //   routeTableId: subnet.routeTable.routeTableId,
-      //   gatewayId: get.igwId,
-      // });
-      // subnets.push(subnet);
 
-      new CfnMountTarget(this, 'MountTarget' + azIndex, {
+      new efs.CfnMountTarget(this, 'MountTarget' + azIndex, {
         fileSystemId: get.fsId,
         securityGroups: [fsSecurityGroup.securityGroupId],
         subnetId: subnet.subnetId
       });
     });
 
-    const fileSystem = FileSystem.fromFileSystemAttributes(this, 'FileSystem', {
+    const fileSystem = efs.FileSystem.fromFileSystemAttributes(this, 'FileSystem', {
       securityGroup: fsSecurityGroup,
       fileSystemId: get.fsId,
     });
 
     const posixId = '0';
-    const configAccessPoint1 = new AccessPoint(this, 'ConfigAccessPoint', {
+    const configAccessPoint1 = new efs.AccessPoint(this, 'ConfigAccessPoint', {
       fileSystem,
       createAcl: { ownerGid: posixId, ownerUid: posixId, permissions: "755" },
       path: '/config',
       posixUser: { uid: posixId, gid: posixId },
     });
-    const galleryAccessPoint1 = new AccessPoint(this, 'GalleryAccessPoint', {
+    const galleryAccessPoint1 = new efs.AccessPoint(this, 'GalleryAccessPoint', {
       fileSystem,
       createAcl: { ownerGid: posixId, ownerUid: posixId, permissions: "755" },
       path: '/gallery',
@@ -111,7 +109,7 @@ export class CdkStack extends cdk.Stack {
     const service = new ecs.Ec2Service(this, 'Service', {
       cluster: get.cluster,
       taskDefinition,
-      desiredCount:get.instanceCount,
+      desiredCount: get.instanceCount,
     });
 
     // Load balancer configuration
@@ -153,6 +151,6 @@ export class CdkStack extends cdk.Stack {
       ttl: Duration.hours(1),
     });
 
-    new cdk.CfnOutput(this, 'DnsName', { value: record.domainName });
+    new CfnOutput(this, 'DnsName', { value: record.domainName });
   }
 }
