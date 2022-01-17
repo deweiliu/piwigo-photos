@@ -11,6 +11,7 @@ import {
   Stack,
   CfnOutput,
   Duration,
+  aws_logs as logs,
 } from 'aws-cdk-lib';
 
 import { ImportValues } from './import-values';
@@ -99,7 +100,7 @@ export class CdkStack extends Stack {
       containerName: `${get.appName}-container`,
       memoryReservationMiB: 32,
       portMappings: [{ containerPort: 80, hostPort: get.hostPort, protocol: ecs.Protocol.TCP }],
-      logging: new ecs.AwsLogDriver({ streamPrefix: get.appName }),
+      logging: new ecs.AwsLogDriver({ streamPrefix: get.appName, logRetention: logs.RetentionDays.ONE_MONTH }),
     });
     container.addMountPoints(
       { containerPath: '/config', readOnly: false, sourceVolume: 'config-volume' },
