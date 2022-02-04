@@ -32,7 +32,7 @@ export class ImportValues extends Construct implements CdkStackProps {
     public hostPort: number;
     public fsId: string;
     public fsArn: string;
-    public dbSecurityGroup: string;
+
     public instanceCount: number;
 
     constructor(scope: Construct, props: CdkStackProps) {
@@ -87,7 +87,7 @@ export class ImportValues extends Construct implements CdkStackProps {
 
         this.fsId = Fn.importValue('Piwigo-EfsId');
         this.fsArn = Fn.importValue('Piwigo-EfsArn');
-        this.dbSecurityGroup = Fn.importValue('Piwigo-DbSecurityGroup');
+
     }
 
 
