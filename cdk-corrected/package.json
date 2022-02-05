@@ -10,11 +10,11 @@
   },
   "devDependencies": {
     "@types/jest": "^26.0.24",
-    "aws-cdk": "2.8.0",
+    "aws-cdk": "2.10.0",
     "jest": "^26.6.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.8.0",
+    "aws-cdk-lib": "2.10.0",
     "constructs": "^10.0.35",
     "source-map-support": "^0.5.16"
   }

@@ -10,10 +10,10 @@
     "synth-yaml": "cdk synth > cdk.out/template.yml"
   },
   "devDependencies": {
-    "aws-cdk": "2.8.0"
+    "aws-cdk": "2.10.0"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.8.0",
+    "aws-cdk-lib": "2.10.0",
     "constructs": "^10.0.35",
     "source-map-support": "^0.5.16"
   }
